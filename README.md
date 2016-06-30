@@ -1,10 +1,10 @@
-# [![IOPA](http://iopa.io/iopa.png)](http://iopa.io)<br> IOPA
+# [![IOPA](http://iopa.io/iopa.png)](http://iopa.io)<br> iopa-rest 
 
-[![Build Status](https://api.shippable.com/projects/55ef3c651895ca447413c9cb/badge?branchName=master)](https://app.shippable.com/projects/55ef3c651895ca447413c9cb)
+[![Build Status](https://api.shippable.com/projects/5774f9ac3be4f4faa56b5244/badge?branchName=master)](https://app.shippable.com/projects/5774f9ac3be4f4faa56b5244)
 [![NPM](https://img.shields.io/badge/iopa-certified-99cc33.svg?style=flat-square)](http://iopa.io/)
 [![limerun](https://img.shields.io/badge/limerun-certified-3399cc.svg?style=flat-square)](https://nodei.co/npm/limerun/)
 
-[![NPM](https://nodei.co/npm/iopa.png?downloads=true&downloadRank=true)](https://nodei.co/npm/iopa/)
+[![NPM](https://nodei.co/npm/iopa-rest.png?downloads=true&downloadRank=true)](https://nodei.co/npm/iopa-rest/)
 
 ## About
 This repository `iopa-rest` is an API-first, Internet of Things (IoT) fabric
