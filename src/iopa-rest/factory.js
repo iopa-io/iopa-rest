@@ -33,7 +33,9 @@ contextExtensionsRESTAddTo(IopaContext.prototype);
 /**
 * Create a new IOPA Context, with default [iopa.*] values populated
 */
-Factory.prototype.createRestContext = function factory_createRestContext() {
+Factory.prototype.createContextCore = Factory.prototype.createContext;
+
+Factory.prototype.createContext = function factory_createRestContext() {
     var context = this._create();
     var response = this._create();
     context.response = response;
