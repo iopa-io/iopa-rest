@@ -23,7 +23,7 @@ const
     IOPA = constants.IOPA,
     SERVER = constants.SERVER,
     VERSION = constants.VERSION
-    mergeContext = iopa.util.shallow.mergeContext,
+    mergeContext = require('../util/shallow').mergeContext,
     Factory = iopa.Factory,
     IopaContext = iopa.Factory.Context;
 
