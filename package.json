@@ -1,0 +1,52 @@
+{
+  "name": "iopa-rest",
+  "main": "index.js",
+  "description": "REST (Representational State Transfer) Extensions, including HTTP, MQTT and CoAP, for Internet Open Protocol Abstraction (IOPA)",
+  "author": "IOPA",
+  "license": "Apache-2.0",
+  "maintainers": [
+    {
+      "name": "iopa",
+      "email": "build@iopa.io"
+    }
+  ],
+  "version": "1.4.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iopa-io/iopa-rest.git"
+  },
+  "dependencies": {
+     "iopa": "^1.4.0"
+  },
+  "keywords": [
+    "iopa",
+    "limerun",
+    "owin",
+    "middleware",
+    "router",
+    "route",
+    "http",
+    "connect",
+    "express",
+    "promise",
+    "async",
+    "framework",
+    "node",
+    "tasks"
+  ],
+  "engines": {
+    "node": ">= 0.12.0"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec test",
+    "quick": "git add . -A && git commit --allow-empty -m 'dev test' && npm version patch && npm publish",
+    "typings": "tsd reinstall --overwrite --clean --config tools/tsd.json && tsd link"
+  },
+  "devDependencies": {
+    "mocha": "^2.3.2",
+    "mocha-junit-reporter": "^1.6.1",
+    "should": "^7.1.0"
+  },
+  "readmeFilename": "README.md",
+  "homepage": "http://iopa.io"
+}
