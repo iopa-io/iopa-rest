@@ -35,21 +35,17 @@ contextExtensionsRESTAddTo(IopaContext.prototype);
 */
 Factory.prototype.createContextCore = Factory.prototype.createContext;
 
-Factory.prototype.createContext = function factory_createRestContext() {
-    var context = this._create();
+
+var _coreCreateContext = Factory.prototype.createContext;
+
+Factory.prototype.createContext = function factory_createRestContext(url) {
+    var context = _coreCreateContext.call(this, url);
     var response = this._create();
     context.response = response;
     context.response[SERVER.ParentContext] = context;
 
     context[IOPA.Headers] = {};
-    context[IOPA.Method] = "";
-    context[IOPA.Host] = "";
-    context[IOPA.Path] = "";
-    context[IOPA.PathBase] = "";
     context[IOPA.Protocol] = "";
-    context[IOPA.QueryString] = "";
-    context[IOPA.Scheme] = "";
-    context[IOPA.Body] = null;
 
     response[IOPA.Headers] = {};
     response[IOPA.StatusCode] = null;
@@ -58,6 +54,53 @@ Factory.prototype.createContext = function factory_createRestContext() {
     response[IOPA.Body] = null;
     response[IOPA.Headers]["Content-Length"] = null;
 
+   const SCHEMES = IOPA.SCHEMES,
+        PROTOCOLS = IOPA.PROTOCOLS,
+        PORTS = IOPA.PORTS
+
+     switch (context[IOPA.Scheme]) {
+        case SCHEMES.HTTP:
+            context[IOPA.Protocol] = PROTOCOLS.HTTP;
+            context[SERVER.TLS] = false;
+            context[IOPA.Headers]["Host"] = context[IOPA.Host];
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.HTTP;
+            break;
+        case SCHEMES.HTTPS:
+            context[IOPA.Protocol] = PROTOCOLS.HTTP;
+            context[SERVER.TLS] = true;
+            context[IOPA.Headers]["Host"] = context[IOPA.Host];
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.HTTPS;
+            break;
+        case SCHEMES.COAP:
+            context[IOPA.Protocol] = PROTOCOLS.COAP;
+            context[SERVER.TLS] = false;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAP;
+            break;
+         case SCHEMES.COAPS:
+            context[IOPA.Protocol] = PROTOCOLS.COAP;
+            context[SERVER.TLS] = true;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAPS;
+            break;
+         case SCHEMES.MQTT:
+            context[IOPA.Protocol] = PROTOCOLS.MQTT;
+            context[SERVER.TLS] = false;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTT;
+            break;
+        case SCHEMES.MQTTS:
+            context[IOPA.Protocol] = PROTOCOLS.MQTT;
+            context[SERVER.TLS] = true;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTTS;
+            break;
+        default:
+            context[IOPA.Protocol] = null;
+            context[SERVER.TLS] = false;
+            context[IOPA.Port] =parseInt(context[IOPA.Port]) || 0;
+            break;
+       };
+
+   context[SERVER.RemoteAddress] =  context[IOPA.Host] 
+   context[SERVER.RemotePort] =  context[IOPA.Port] 
+  
     return context;
 };
 
@@ -71,66 +114,61 @@ Factory.prototype.createRequest = function createRequest(urlStr, options) {
 
     options = options || {};
 
-    var context = this._create();
+    var context = _coreCreateContext.call(this, urlStr);
     context[SERVER.IsLocalOrigin] = true;
     context[SERVER.IsRequest] = true;
     context[SERVER.OriginalUrl] = urlStr;
     context[IOPA.Method] = options[IOPA.Method] || IOPA.METHODS.GET;
 
-    var urlParsed = URL.parse(urlStr);
-    context[IOPA.PathBase] = "";
-    context[IOPA.Path] = urlParsed.pathname || "";
-    context[IOPA.QueryString] = urlParsed.query;
-    context[IOPA.Scheme] = urlParsed.protocol;
-    context[SERVER.RemoteAddress] = urlParsed.hostname;
-    context[IOPA.Host] = urlParsed.hostname;
+    context[SERVER.RemoteAddress] =  context[IOPA.Host] 
     context[IOPA.Headers] = {};
-    context[IOPA.Body] = null;
 
     const SCHEMES = IOPA.SCHEMES,
         PROTOCOLS = IOPA.PROTOCOLS,
         PORTS = IOPA.PORTS
 
-    switch (urlParsed.protocol) {
+        switch (context[IOPA.Scheme]) {
         case SCHEMES.HTTP:
             context[IOPA.Protocol] = PROTOCOLS.HTTP;
             context[SERVER.TLS] = false;
             context[IOPA.Headers]["Host"] = context[IOPA.Host];
-            context[SERVER.RemotePort] = parseInt(urlParsed.port) || PORTS.HTTP;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.HTTP;
             break;
         case SCHEMES.HTTPS:
             context[IOPA.Protocol] = PROTOCOLS.HTTP;
             context[SERVER.TLS] = true;
             context[IOPA.Headers]["Host"] = context[IOPA.Host];
-            context[SERVER.RemotePort] = parseInt(urlParsed.port) || PORTS.HTTPS;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.HTTPS;
             break;
         case SCHEMES.COAP:
             context[IOPA.Protocol] = PROTOCOLS.COAP;
             context[SERVER.TLS] = false;
-            context[SERVER.RemotePort] = parseInt(urlParsed.port) || PORTS.COAP;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAP;
             break;
          case SCHEMES.COAPS:
             context[IOPA.Protocol] = PROTOCOLS.COAP;
             context[SERVER.TLS] = true;
-            context[SERVER.RemotePort] = parseInt(urlParsed.port) || PORTS.COAPS;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAPS;
             break;
          case SCHEMES.MQTT:
             context[IOPA.Protocol] = PROTOCOLS.MQTT;
             context[SERVER.TLS] = false;
-            context[SERVER.RemotePort] = parseInt(urlParsed.port) || PORTS.MQTT;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTT;
             break;
         case SCHEMES.MQTTS:
             context[IOPA.Protocol] = PROTOCOLS.MQTT;
             context[SERVER.TLS] = true;
-            context[SERVER.RemotePort] = parseInt(urlParsed.port) || PORTS.MQTTS;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTTS;
             break;
         default:
             context[IOPA.Protocol] = null;
             context[SERVER.TLS] = false;
-            context[SERVER.RemotePort] =parseInt(urlParsed.port) || 0;
+            context[IOPA.Port] =parseInt(context[IOPA.Port]) || 0;
             break;
        };
 
+    context[SERVER.RemotePort] =  context[IOPA.Port] 
+  
     mergeContext(context, options);
 
     return context;
@@ -140,7 +178,7 @@ Factory.prototype.createRequest = function createRequest(urlStr, options) {
 * Create a new IOPA Context, with default [iopa.*] values populated
 */
 Factory.prototype.createRequestResponse = function createRequestResponse(urlStr, options) {
-    var context = this.createRequest(urlStr, options);
+    var context = this.createRequest.call(this, urlStr, options);
 
     var response = this._create();
     context.response = response;
@@ -152,12 +190,12 @@ Factory.prototype.createRequestResponse = function createRequestResponse(urlStr,
     response[IOPA.Protocol] = context[IOPA.Protocol];
     response[IOPA.Body] = null;
     response[SERVER.TLS] = context[SERVER.TLS];
-    response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress];
-    response[SERVER.RemotePort] = context[SERVER.RemotePort];
-    response[SERVER.IsLocalOrigin] = false;
+     response[SERVER.IsLocalOrigin] = false;
     response[SERVER.IsRequest] = false;
     response[SERVER.Logger] = context[SERVER.Logger];
-
+   response[SERVER.RemoteAddress] =  context[SERVER.RemoteAddress] 
+   response[SERVER.RemotePort] =  context[SERVER.RemotePort] 
+  
     return context;
 }
 
