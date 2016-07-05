@@ -16,10 +16,10 @@
  */
 
 const cloneKeyBehaviors = require('iopa').util.prototype.cloneKeyBehaviors,
-    constants = require('iopa').constants,
-    IOPA = constants.IOPA,
-    SERVER = constants.SERVER,
- 
+   constants = require('./constants'),
+   IOPA = constants.IOPA,
+   SERVER = constants.SERVER,
+
     EventEmitter = require('events').EventEmitter,
     Stream = require('stream'),
     Readable = Stream.Readable,

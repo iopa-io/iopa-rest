@@ -52,16 +52,14 @@ const _next_createContext = Factory.prototype.createContext;
 Factory.prototype.createContext = function factory_rest_createContext(url, options) {
 
     options = this.validOptions(options);
-
-    var context = _next_createContext.call(this, url, null);
+    var context;
+    context = _next_createContext.call(this, url, null);
 
     context[IOPA.Headers] = {};
     context[IOPA.Protocol] = "";
 
     context[SERVER.OriginalUrl] = url;
     context[IOPA.Method] = options[IOPA.Method] || context[IOPA.Method];
-
-
 
     switch (context[IOPA.Scheme]) {
         case SCHEMES.HTTP:
@@ -109,7 +107,7 @@ Factory.prototype.createContext = function factory_rest_createContext(url, optio
     mergeContext(context, options);
 
     context.create = this.rest_createContextChild.bind(this, context, context.create);
-    
+
     context.addResponse = this.addResponse.bind(this, context);
 
     if (context.response)
@@ -160,8 +158,8 @@ Factory.prototype.rest_createContextChild = function factory_rest_createContextC
  * @returns response
  * @public
  */
-Factory.prototype.addResponse = function factory_rest_addResponse(context) {
-    var response = this.createContext();
+Factory.prototype.addResponse = function factory_rest_addResponse(context, options) {
+    var response = this.createContext(null, options);
     context.response = response;
     context.response[SERVER.ParentContext] = context;
     this.mergeCapabilities(response, context);
@@ -178,8 +176,10 @@ Factory.prototype.addResponse = function factory_rest_addResponse(context) {
     response[SERVER.RemotePort] = context[SERVER.RemotePort]
     response[SERVER.RawStream] = context[SERVER.RawStream];
 
+
     return response;
 };
+
 
 
 exports = Factory;
