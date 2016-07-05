@@ -15,50 +15,55 @@
  * limitations under the License.
  */
 
-const 
+const
     iopa = require('iopa'),
     URL = require('url'),
     contextExtensionsRESTAddTo = require('./context').addTo,
     constants = require('./constants'),
     IOPA = constants.IOPA,
     SERVER = constants.SERVER,
-    VERSION = constants.VERSION
-    mergeContext = require('../util/shallow').mergeContext,
+    VERSION = constants.VERSION,
+    SCHEMES = IOPA.SCHEMES,
+    PROTOCOLS = IOPA.PROTOCOLS,
+    PORTS = IOPA.PORTS,
+    mergeContext = iopa.util.shallow.mergeContext,
     Factory = iopa.Factory,
     IopaContext = iopa.Factory.Context;
 
 // Add Rest Extensions to Iopa Context Prototype
 contextExtensionsRESTAddTo(IopaContext.prototype);
 
-/**
-* Create a new IOPA Context, with default [iopa.*] values populated
-*/
 Factory.prototype.createContextCore = Factory.prototype.createContext;
 
+const _next_createContext = Factory.prototype.createContext;
 
-var _coreCreateContext = Factory.prototype.createContext;
+//OVERRIDES PUBLIC METHODS 
 
-Factory.prototype.createContext = function factory_createRestContext(url) {
-    var context = _coreCreateContext.call(this, url);
-    var response = this._create();
-    context.response = response;
-    context.response[SERVER.ParentContext] = context;
+/**
+ * Creates a new IOPA Context 
+ *
+ * @method createContext
+ *
+ * @param url string representation of scheme://host/hello?querypath
+ * @param options object 
+ * @returns context
+ * @public
+ */
+Factory.prototype.createContext = function factory_rest_createContext(url, options) {
+
+    options = this.validOptions(options);
+
+    var context = _next_createContext.call(this, url, null);
 
     context[IOPA.Headers] = {};
     context[IOPA.Protocol] = "";
 
-    response[IOPA.Headers] = {};
-    response[IOPA.StatusCode] = null;
-    response[IOPA.ReasonPhrase] = "";
-    response[IOPA.Protocol] = "";
-    response[IOPA.Body] = null;
-    response[IOPA.Headers]["Content-Length"] = null;
+    context[SERVER.OriginalUrl] = url;
+    context[IOPA.Method] = options[IOPA.Method] || context[IOPA.Method];
 
-   const SCHEMES = IOPA.SCHEMES,
-        PROTOCOLS = IOPA.PROTOCOLS,
-        PORTS = IOPA.PORTS
 
-     switch (context[IOPA.Scheme]) {
+
+    switch (context[IOPA.Scheme]) {
         case SCHEMES.HTTP:
             context[IOPA.Protocol] = PROTOCOLS.HTTP;
             context[SERVER.TLS] = false;
@@ -76,12 +81,12 @@ Factory.prototype.createContext = function factory_createRestContext(url) {
             context[SERVER.TLS] = false;
             context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAP;
             break;
-         case SCHEMES.COAPS:
+        case SCHEMES.COAPS:
             context[IOPA.Protocol] = PROTOCOLS.COAP;
             context[SERVER.TLS] = true;
             context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAPS;
             break;
-         case SCHEMES.MQTT:
+        case SCHEMES.MQTT:
             context[IOPA.Protocol] = PROTOCOLS.MQTT;
             context[SERVER.TLS] = false;
             context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTT;
@@ -94,109 +99,87 @@ Factory.prototype.createContext = function factory_createRestContext(url) {
         default:
             context[IOPA.Protocol] = null;
             context[SERVER.TLS] = false;
-            context[IOPA.Port] =parseInt(context[IOPA.Port]) || 0;
+            context[IOPA.Port] = parseInt(context[IOPA.Port]) || 0;
             break;
-       };
+    };
 
-   context[SERVER.RemoteAddress] =  context[IOPA.Host] 
-   context[SERVER.RemotePort] =  context[IOPA.Port] 
-  
+    context[SERVER.RemoteAddress] = context[IOPA.Host]
+    context[SERVER.RemotePort] = context[IOPA.Port]
+
+    mergeContext(context, options);
+
+    context.create = this.rest_createContextChild.bind(this, context, context.create);
+    
+    context.addResponse = this.addResponse.bind(this, context);
+
+    if (context.response)
+        context.addResponse();
+
     return context;
 };
 
 /**
-* Create a new IOPA Context, with default [iopa.*] values populated
-*/
-Factory.prototype.createRequest = function createRequest(urlStr, options) {
+ * Creates a new IOPA Context that is a child request/response of a parent Context
+ *
+ * @method rest_createContextChild
+ *
+ * @param parentContext IOPA Context for parent
+ * @param url string representation of /hello to add to parent url
+ * @param options object 
+ * @returns context
+ * @public
+ */
+Factory.prototype.rest_createContextChild = function factory_rest_createContextChild(parentContext, next, url, options) {
 
-    if (typeof options === 'string' || options instanceof String)
-        options = { "iopa.Method": options };
+    options = this.validOptions(options);
 
-    options = options || {};
+    var context = next(url, null);
 
-    var context = _coreCreateContext.call(this, urlStr);
-    context[SERVER.IsLocalOrigin] = true;
-    context[SERVER.IsRequest] = true;
-    context[SERVER.OriginalUrl] = urlStr;
-    context[IOPA.Method] = options[IOPA.Method] || IOPA.METHODS.GET;
+    context[SERVER.SessionId] = parentContext[SERVER.SessionId];
+    context[SERVER.TLS] = parentContext[SERVER.TLS];
 
-    context[SERVER.RemoteAddress] =  context[IOPA.Host] 
-    context[IOPA.Headers] = {};
+    context[IOPA.Protocol] = parentContext[IOPA.Protocol];
 
-    const SCHEMES = IOPA.SCHEMES,
-        PROTOCOLS = IOPA.PROTOCOLS,
-        PORTS = IOPA.PORTS
+    context[SERVER.RemoteAddress] = parentContext[SERVER.RemoteAddress];
+    context[SERVER.RemotePort] = parentContext[SERVER.RemotePort];
+    context[SERVER.LocalAddress] = parentContext[SERVER.LocalAddress];
+    context[SERVER.LocalPort] = parentContext[SERVER.LocalPort];
+    context[SERVER.RawStream] = parentContext[SERVER.RawStream];
 
-        switch (context[IOPA.Scheme]) {
-        case SCHEMES.HTTP:
-            context[IOPA.Protocol] = PROTOCOLS.HTTP;
-            context[SERVER.TLS] = false;
-            context[IOPA.Headers]["Host"] = context[IOPA.Host];
-            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.HTTP;
-            break;
-        case SCHEMES.HTTPS:
-            context[IOPA.Protocol] = PROTOCOLS.HTTP;
-            context[SERVER.TLS] = true;
-            context[IOPA.Headers]["Host"] = context[IOPA.Host];
-            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.HTTPS;
-            break;
-        case SCHEMES.COAP:
-            context[IOPA.Protocol] = PROTOCOLS.COAP;
-            context[SERVER.TLS] = false;
-            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAP;
-            break;
-         case SCHEMES.COAPS:
-            context[IOPA.Protocol] = PROTOCOLS.COAP;
-            context[SERVER.TLS] = true;
-            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.COAPS;
-            break;
-         case SCHEMES.MQTT:
-            context[IOPA.Protocol] = PROTOCOLS.MQTT;
-            context[SERVER.TLS] = false;
-            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTT;
-            break;
-        case SCHEMES.MQTTS:
-            context[IOPA.Protocol] = PROTOCOLS.MQTT;
-            context[SERVER.TLS] = true;
-            context[IOPA.Port] = parseInt(context[IOPA.Port]) || PORTS.MQTTS;
-            break;
-        default:
-            context[IOPA.Protocol] = null;
-            context[SERVER.TLS] = false;
-            context[IOPA.Port] =parseInt(context[IOPA.Port]) || 0;
-            break;
-       };
-
-    context[SERVER.RemotePort] =  context[IOPA.Port] 
-  
     mergeContext(context, options);
 
     return context;
 };
 
 /**
-* Create a new IOPA Context, with default [iopa.*] values populated
-*/
-Factory.prototype.createRequestResponse = function createRequestResponse(urlStr, options) {
-    var context = this.createRequest.call(this, urlStr, options);
-
-    var response = this._create();
+ * Add a new IOPA Context that is a response of a request Context
+ *
+ * @method addResponse
+ *
+ * @param context IOPA Context for parent request
+ * @returns response
+ * @public
+ */
+Factory.prototype.addResponse = function factory_rest_addResponse(context) {
+    var response = this.createContext();
     context.response = response;
     context.response[SERVER.ParentContext] = context;
+    this.mergeCapabilities(response, context);
 
-    response[IOPA.Headers] = {};
     response[IOPA.StatusCode] = null;
     response[IOPA.ReasonPhrase] = "";
     response[IOPA.Protocol] = context[IOPA.Protocol];
     response[IOPA.Body] = null;
-    response[SERVER.TLS] = context[SERVER.TLS];
-     response[SERVER.IsLocalOrigin] = false;
     response[SERVER.IsRequest] = false;
-    response[SERVER.Logger] = context[SERVER.Logger];
-   response[SERVER.RemoteAddress] =  context[SERVER.RemoteAddress] 
-   response[SERVER.RemotePort] =  context[SERVER.RemotePort] 
-  
-    return context;
-}
+    response[IOPA.Headers] = {};
+
+    response[SERVER.TLS] = context[SERVER.TLS];
+    response[SERVER.RemoteAddress] = context[SERVER.RemoteAddress]
+    response[SERVER.RemotePort] = context[SERVER.RemotePort]
+    response[SERVER.RawStream] = context[SERVER.RawStream];
+
+    return response;
+};
+
 
 exports = Factory;
